@@ -61,7 +61,7 @@ export default {
 			theme: {
 				title: "READTalk - Lock",
 				primary: "#ff0000",
-				favicon: "https://workers.cloudflare.com//favicon.ico",
+				favicon: "https://readtalk.vercel.app/favicon.ico",
 				logo: {
 					dark: "https://readtalk.vercel.app/logo.webp",
 					light:
