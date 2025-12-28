@@ -63,9 +63,9 @@ export default {
 				primary: "#ff0000",
 				favicon: "https://readtalk.vercel.app/favicon.ico",
 				logo: {
-					dark: "https://readtalk.vercel.app/logo.webp",
+					dark: "https://readtalk.vercel.app/brand-assets.png",
 					light:
-						"https://readtalk.vercel.app/logo.webp",
+						"https://readtalk.vercel.app/brand-assets.png",
 				},
 			},
 			success: async (ctx, value) => {
