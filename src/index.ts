@@ -8,29 +8,29 @@ import { object, string } from "valibot";
 const subjects = createSubjects({
 	user: object({
 		id: string(),
-		username: string(),
 	}),
 });
 
-async function getOrCreateUser(env: Env, email: string, username?: string): Promise<{id: string, username: string}> {
-	const finalUsername = username || email.split('@')[0];
-	
+// Base64 encoded chat.readtalk URL
+const CHAT_BASE_URL = 'aHR0cHM6Ly9jaGF0LnJlYWR0YWxrLndvcmtlcnMuZGV2';
+
+async function getOrCreateUser(env: Env, email: string): Promise<string> {
 	const result = await env.AUTH_DB.prepare(
-		`INSERT INTO user (email, username) VALUES (?, ?)
-		 ON CONFLICT (email) DO UPDATE SET 
-		   username = COALESCE(excluded.username, user.username)
-		 RETURNING id, username`
+		`INSERT INTO user (email) VALUES (?)
+		 ON CONFLICT (email) DO UPDATE SET email = email
+		 RETURNING id`
 	)
-		.bind(email, finalUsername)
-		.first<{ id: string, username: string }>();
+		.bind(email)
+		.first<{ id: string }>();
 	
 	if (!result) throw new Error(`Unable to process user: ${email}`);
-	return result;
+	return result.id;
 }
 
 export default {
 	fetch(request: Request, env: Env, ctx: ExecutionContext) {
 		const url = new URL(request.url);
+		
 		if (url.pathname === "/") {
 			url.searchParams.set("redirect_uri", url.origin + "/callback");
 			url.searchParams.set("client_id", "your-client-id");
@@ -71,15 +71,11 @@ export default {
 				},
 			},
 			success: async (ctx, value) => {
-				const userEmail = value.email;
-				const userUsername = value.profile?.username || userEmail.split('@')[0];
+				const userId = await getOrCreateUser(env, value.email);
 				
-				const user = await getOrCreateUser(env, userEmail, userUsername);
-				
-				return ctx.subject("user", {
-					id: user.id,
-					username: user.username,
-				});
+				// Decode base64 URL dan redirect
+				const chatUrl = atob(CHAT_BASE_URL) + '/' + userId;
+				return Response.redirect(chatUrl);
 			},
 		}).fetch(request, env, ctx);
 	},
