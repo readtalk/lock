@@ -12,15 +12,16 @@ const subjects = createSubjects({
 	}),
 });
 
-async function getOrCreateUser(env: Env, email: string): Promise<{id: string, username: string}> {
-	const username = email.split('@')[0];
+async function getOrCreateUser(env: Env, email: string, username?: string): Promise<{id: string, username: string}> {
+	const finalUsername = username || email.split('@')[0];
 	
 	const result = await env.AUTH_DB.prepare(
 		`INSERT INTO user (email, username) VALUES (?, ?)
-		 ON CONFLICT (email) DO UPDATE SET email = email
+		 ON CONFLICT (email) DO UPDATE SET 
+		   username = COALESCE(excluded.username, user.username)
 		 RETURNING id, username`
 	)
-		.bind(email, username)
+		.bind(email, finalUsername)
 		.first<{ id: string, username: string }>();
 	
 	if (!result) throw new Error(`Unable to process user: ${email}`);
@@ -70,7 +71,11 @@ export default {
 				},
 			},
 			success: async (ctx, value) => {
-				const user = await getOrCreateUser(env, value.email);
+				const userEmail = value.email;
+				const userUsername = value.profile?.username || userEmail.split('@')[0];
+				
+				const user = await getOrCreateUser(env, userEmail, userUsername);
+				
 				return ctx.subject("user", {
 					id: user.id,
 					username: user.username,
